@@ -81,7 +81,8 @@ export default function AdminPage() {
         </div>
       </aside>
 
-      {/* Contenido principal */}
+      {/* Contenido principal + footer */}
+      <div className="flex-1 flex flex-col min-w-0">
       <main className="flex-1 p-6 md:p-8 lg:p-10 overflow-auto">
         <header className="mb-8">
           <h1 className="text-2xl md:text-3xl font-extrabold text-slate-800">Elige una sección</h1>
@@ -250,6 +251,18 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000`}
           </div>
         </div>
       </main>
+      <footer className="py-3 text-center text-xs text-slate-500 border-t border-[#29B6B6]/10 bg-white/50 shrink-0">
+        Desarrollado para creadores de contenido, chatbots y VTubers. Creado por{' '}
+        <a
+          href="https://github.com/bemtorres"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#29B6B6] hover:underline font-semibold"
+        >
+          bemtorres
+        </a>
+      </footer>
+      </div>
     </div>
   );
 }

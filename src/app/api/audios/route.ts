@@ -7,10 +7,12 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const characterId = searchParams.get('character_id');
+    const folderId = searchParams.get('folder_id');
     if (!characterId) {
       return NextResponse.json({ error: 'character_id es obligatorio' }, { status: 400 });
     }
-    const audios = getAudiosByCharacterId(parseInt(characterId));
+    const fid = folderId === 'none' ? null : (folderId ? parseInt(folderId, 10) : undefined);
+    const audios = getAudiosByCharacterId(parseInt(characterId), fid);
     return NextResponse.json(audios);
   } catch {
     return NextResponse.json({ error: 'Error al obtener audios' }, { status: 500 });
@@ -22,6 +24,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       character_id,
+      folder_id,
       audio: audioBase64,
       text,
       voice_id,
@@ -53,6 +56,7 @@ export async function POST(request: Request) {
     const audio = createAudio({
       id,
       character_id,
+      folder_id: folder_id ?? null,
       text,
       voice_id,
       voice_name,
@@ -73,7 +77,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      ...audio,
+      ...(audio as Record<string, unknown>),
       url: `/${filePath}`,
     }, { status: 201 });
   } catch (err) {

@@ -25,6 +25,7 @@ interface CreateAudioModalProps {
   onClose: () => void;
   characterName: string;
   character?: CharacterForInstructions | null;
+  folderId?: number | null;
   onSuccess: (audio: {
     id: string;
     text: string;
@@ -37,7 +38,7 @@ interface CreateAudioModalProps {
   }) => void;
 }
 
-export default function CreateAudioModal({ isOpen, onClose, characterName, character, onSuccess }: CreateAudioModalProps) {
+export default function CreateAudioModal({ isOpen, onClose, characterName, character, folderId, onSuccess }: CreateAudioModalProps) {
   const [voiceId, setVoiceId] = useState('');
   const [text, setText] = useState('');
   const [language, setLanguage] = useState<string>('es');
@@ -70,6 +71,7 @@ export default function CreateAudioModal({ isOpen, onClose, characterName, chara
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             character_id: character.id,
+            folder_id: folderId ?? undefined,
             audio: data.audio,
             text: text.trim(),
             voice_id: voiceId,

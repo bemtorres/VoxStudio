@@ -118,4 +118,6 @@ Ruta `/admin` para gestión avanzada (dashboard de voces y configuración).
 
 ---
 
-Desarrollado para creadores de contenido, chatbots y VTubers.
+Desarrollado para creadores de contenido, chatbots y VTubers. 
+
+Creado por [bemtorres](https://github.com/bemtorres).
