@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# audios generados (opcional: quitar para versionar)
+/public/audios
+
+# base de datos local
+voces.db

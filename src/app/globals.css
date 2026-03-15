@@ -1,26 +1,152 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* VoxStudio brand colors */
+  --vox-dark: #373D48;
+  --vox-turquoise: #29B6B6;
+  --vox-violet: #6B2D8C;
+  --vox-blue: #3B59AB;
+  --vox-gradient: linear-gradient(135deg, #6B2D8C 0%, #3B59AB 50%, #29B6B6 100%);
+
+  --background: #09090b;
+  --foreground: #fafafa;
+  --surface: #18181b;
+  --surface-elevated: #27272a;
+  --border: #3f3f46;
+  --primary: #29B6B6;
+  --primary-hover: #34d1d1;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --accent-green: #22c55e;
+  --accent-red: #ef4444;
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-vox-dark: #373D48;
+  --color-vox-turquoise: #29B6B6;
+  --color-vox-violet: #6B2D8C;
+  --color-vox-blue: #3B59AB;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Glassmorphism & Effects */
+.glass {
+  background: rgba(24, 24, 27, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.gradient-primary {
+  background: var(--vox-gradient);
+}
+
+.shadow-premium {
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* Admin: borde pulsante en tarjeta seleccionada */
+@keyframes admin-pulse-border {
+  0%, 100% { box-shadow: 0 0 0 3px #29B6B6, 0 12px 24px -8px rgba(41, 182, 182, 0.25); }
+  50% { box-shadow: 0 0 0 5px #34d1d1, 0 12px 28px -8px rgba(41, 182, 182, 0.35); }
+}
+.admin-card-selected {
+  animation: admin-pulse-border 1.5s ease-in-out infinite;
+}
+
+/* Tema VoxStudio: página principal */
+.game-layout {
+  --background: #f8fafc;
+  --foreground: #373D48;
+  --surface: rgba(255, 255, 255, 0.95);
+  --surface-elevated: rgba(255, 255, 255, 0.98);
+  --border: rgba(41, 182, 182, 0.2);
+  --primary: #29B6B6;
+  --primary-hover: #34d1d1;
+  --text-primary: #373D48;
+  --text-secondary: #64748b;
+  --accent-green: #10b981;
+  --accent-red: #f43f5e;
+}
+.game-layout .gradient-primary {
+  background: var(--vox-gradient);
+}
+
+/* Drawer: desliza desde la derecha */
+@keyframes drawer-slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes drawer-backdrop-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.drawer-panel {
+  animation: drawer-slide-in 0.3s ease-out;
+}
+.drawer-backdrop {
+  animation: drawer-backdrop-fade 0.2s ease-out;
+}
+
+/* Reproductor: barra de progreso con thumb circular gris */
+.audio-scrubber {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+.audio-scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #9ca3af;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.audio-scrubber::-webkit-slider-thumb:hover {
+  background: #d1d5db;
+}
+.audio-scrubber::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #9ca3af;
+  cursor: pointer;
+  border: none;
+}
+
