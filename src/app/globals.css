@@ -150,3 +150,26 @@ body {
   border: none;
 }
 
+/* Sound waves hero (estilo React Bits / música) */
+@keyframes sound-bar-pulse {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.6; }
+  50% { transform: scaleY(1); opacity: 0.9; }
+}
+.animate-sound-bar {
+  animation: sound-bar-pulse 1.2s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+/* Hero text: entrada suave tipo React Bits */
+@keyframes hero-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-hero-fade-up {
+  animation: hero-fade-up 0.7s ease-out forwards;
+  opacity: 0;
+}
+.hero-delay-1 { animation-delay: 0.12s; }
+.hero-delay-2 { animation-delay: 0.24s; }
+.hero-delay-3 { animation-delay: 0.36s; }
+

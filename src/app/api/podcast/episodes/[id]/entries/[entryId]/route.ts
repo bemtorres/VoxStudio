@@ -17,6 +17,7 @@ export async function PUT(
       voice_name: body.voice_name,
       language: body.language,
       qualities: body.qualities,
+      synthesized_text: body.synthesized_text,
     });
     return NextResponse.json(entry);
   } catch (err) {

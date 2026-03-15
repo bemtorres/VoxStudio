@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import SoundWavesHero from '@/components/SoundWavesHero';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -22,8 +23,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-[#e8f4f4] to-[#f0f9ff] text-[#373D48] flex flex-col">
-      <header className="h-16 px-4 md:px-6 flex items-center justify-between border-b border-[#29B6B6]/20 bg-white/80">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-[#e8f4f4] to-[#f0f9ff] text-[#373D48] flex flex-col relative">
+      <SoundWavesHero compact />
+      <header className="relative z-10 h-16 px-4 md:px-6 flex items-center justify-between border-b border-[#29B6B6]/20 bg-white/80">
         <Link href="/" className="flex items-center gap-3">
           <img src="/VoxStudioLogo.png" alt="VoxStudio" className="w-9 h-9 object-contain" />
           <span className="text-lg font-extrabold"><span className="text-[#373D48]">Vox</span><span className="text-[#29B6B6]">Studio</span></span>
@@ -33,7 +35,7 @@ export default function LoginPage() {
         </Link>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-6">
+      <main className="relative z-10 flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
           <div className="bg-white/90 rounded-2xl border-2 border-[#29B6B6]/20 shadow-xl p-8">
             <h1 className="text-2xl font-extrabold text-slate-800 mb-2">Iniciar sesión</h1>

@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Character } from '@/types';
+import { getVoiceName } from '@/lib/voices';
 import CharacterForm from './CharacterForm';
+import CharacterVoiceSection from './CharacterVoiceSection';
 import CreateAudioModal from './CreateAudioModal';
 import AudioFoldersView from './AudioFoldersView';
 import type { NowPlaying } from './AudioPlayerBar';
@@ -34,18 +36,55 @@ export default function PersonajesSection({
     if (!v) onCloseCreateFromProfile?.();
   };
   const [createProfile, setCreateProfile] = useState({ name: '', age: '', gender: '' });
-  const [characterTab, setCharacterTab] = useState<'audios' | 'editar'>('audios');
+  const [characterTab, setCharacterTab] = useState<'audios' | 'editar' | 'voz'>('audios');
   const [showCreateAudioModal, setShowCreateAudioModal] = useState(false);
   const [createAudioFolderId, setCreateAudioFolderId] = useState<number | null | undefined>(undefined);
   const [loadAudiosTrigger, setLoadAudiosTrigger] = useState(0);
+  const [playingDemo, setPlayingDemo] = useState(false);
+  const demoAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const selectedCharacter = characters.find(c => c.id === selectedId) || null;
+
+  const playVoiceDemo = useCallback(() => {
+    if (!selectedCharacter) return;
+    if (playingDemo && demoAudioRef.current) {
+      demoAudioRef.current.pause();
+      demoAudioRef.current = null;
+      setPlayingDemo(false);
+      return;
+    }
+    const voiceId = selectedCharacter.voice_id || 'alloy';
+    if (demoAudioRef.current) {
+      demoAudioRef.current.pause();
+      demoAudioRef.current = null;
+    }
+    setPlayingDemo(true);
+    const audio = new Audio(`/api/voices/sample/${voiceId}`);
+    demoAudioRef.current = audio;
+    audio.onended = () => {
+      setPlayingDemo(false);
+      demoAudioRef.current = null;
+    };
+    audio.onerror = () => {
+      setPlayingDemo(false);
+      demoAudioRef.current = null;
+    };
+    audio.play().catch(() => setPlayingDemo(false));
+  }, [selectedCharacter, playingDemo]);
 
   useEffect(() => {
     if (selectedId && !characters.some(c => c.id === selectedId)) {
       setSelectedId(null);
     }
   }, [characters, selectedId]);
+
+  useEffect(() => {
+    if (demoAudioRef.current) {
+      demoAudioRef.current.pause();
+      demoAudioRef.current = null;
+    }
+    setPlayingDemo(false);
+  }, [selectedId]);
 
   const handleCreate = useCallback(async (initialData?: { name?: string; age?: string; gender?: string }) => {
     try {
@@ -259,11 +298,36 @@ export default function PersonajesSection({
             {selectedCharacter && (
               <div className="flex flex-col h-full min-h-[480px]">
                 <div className="sticky top-0 z-10 px-6 py-4 bg-gradient-to-r from-[#6B2D8C]/10 via-[#3B59AB]/10 to-[#29B6B6]/10 border-b border-[#29B6B6]/20 shrink-0 backdrop-blur-sm bg-white/95">
-                  <p className="text-xs text-slate-500 mb-1">Personajes &gt; {selectedCharacter.name || 'Sin nombre'}</p>
-                  <h2 className="text-xl font-extrabold text-slate-800">{selectedCharacter.name || 'Sin nombre'}</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {selectedCharacter.gender || '—'} • {selectedCharacter.age || '—'} • Personaliza y asigna voz
-                  </p>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-slate-500 mb-1">Personajes &gt; {selectedCharacter.name || 'Sin nombre'}</p>
+                      <h2 className="text-xl font-extrabold text-slate-800">{selectedCharacter.name || 'Sin nombre'}</h2>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {selectedCharacter.gender || '—'} • {selectedCharacter.age || '—'}
+                        {selectedCharacter.voice_id ? (
+                          <> • Voz: <span className="font-medium text-slate-600">{getVoiceName(selectedCharacter.voice_id)}</span></>
+                        ) : (
+                          <> • Personaliza y asigna voz</>
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={playVoiceDemo}
+                      title="Reproducir muestra de voz"
+                      className="shrink-0 p-3 rounded-xl bg-[#29B6B6] text-white hover:bg-[#25a0a0] transition-colors shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#29B6B6]/50 focus:ring-offset-2"
+                    >
+                      {playingDemo ? (
+                        <svg className="w-6 h-6 text-white animate-pulse" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                   <nav className="flex gap-1 mt-4">
                     <button
                       onClick={() => setCharacterTab('audios')}
@@ -284,6 +348,16 @@ export default function PersonajesSection({
                       }`}
                     >
                       Editar personaje
+                    </button>
+                    <button
+                      onClick={() => setCharacterTab('voz')}
+                      className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                        characterTab === 'voz'
+                          ? 'bg-[#29B6B6]/25 text-[#29B6B6] shadow-sm'
+                          : 'text-slate-500 hover:bg-[#29B6B6]/10 hover:text-[#373D48]'
+                      }`}
+                    >
+                      Voz
                     </button>
                   </nav>
                 </div>
@@ -307,6 +381,13 @@ export default function PersonajesSection({
 
                   {characterTab === 'editar' && (
                     <CharacterForm
+                      character={selectedCharacter}
+                      onUpdate={handleUpdate}
+                    />
+                  )}
+
+                  {characterTab === 'voz' && (
+                    <CharacterVoiceSection
                       character={selectedCharacter}
                       onUpdate={handleUpdate}
                     />

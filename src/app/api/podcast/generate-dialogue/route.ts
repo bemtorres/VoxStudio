@@ -31,7 +31,8 @@ export async function POST(request: Request) {
     }
 
     const episodeId = parseInt(String(episode_id), 10);
-    const duration = Math.max(1, Math.min(60, parseInt(String(duration_minutes || 5), 10) || 5));
+    const durationMinutes = Math.max(1, Math.min(60, parseInt(String(duration_minutes || 5), 10) || 5));
+    const duration = Math.min(60, durationMinutes + 1); // +1 minuto como pedido
     const styleKey = (style && STYLES[style as keyof typeof STYLES]) ? style : 'conversacional';
     const styleDesc = STYLES[styleKey as keyof typeof STYLES] || STYLES.conversacional;
 
@@ -53,14 +54,14 @@ export async function POST(request: Request) {
       )
       .join('\n');
 
-    const wordsTarget = Math.round((duration * 150 * 0.9)); // ~150 palabras/min en español, un poco menos para expresiones
+    const wordsTarget = Math.round((duration * 150 * 0.9)); // ~150 palabras/min en español (+1 minuto ya sumado)
 
     const systemPrompt = `Eres un guionista experto en podcasts. Genera un diálogo en español para un podcast.
 
 REGLAS:
 1. Responde SOLO con líneas en formato JSON array. Cada elemento: {"character_name": "Nombre", "text": "Texto que dice"}
 2. Usa SOLO los nombres de personajes proporcionados.
-3. Incluye expresiones dentro del texto usando corchetes: [risa], [suspenso], [pausa dramática], [emoción], [sorpresa], [reflexivo], [entusiasmado], [serio], etc. para dar vida al diálogo.
+3. Usa SOLO estas etiquetas de gesticulación (en minúsculas, dentro del texto): [suspenso], [mágica], [entusiasmado], [serio], [risa], [sorpresa], [reflexivo], [emoción], [pausa dramática], [susurro], [enfático], [triste], [nervioso], [tierno], [sarcástico]. No inventes otras; se convierten en instrucciones de voz y no se leen en alto.
 4. Alterna entre personajes de forma natural.
 5. El diálogo debe tener aproximadamente ${wordsTarget} palabras en total.
 6. Cada línea de texto: 1-4 oraciones. No hagas monólogos muy largos.
@@ -118,6 +119,7 @@ Genera el diálogo completo en formato JSON.`;
 
     const nameToId = Object.fromEntries(characters.map((c) => [c!.name?.toLowerCase().trim(), c!.id]));
     const created: { id: number }[] = [];
+    const WORDS_PER_SECOND = 2.5; // español hablado
 
     for (const line of lines) {
       const name = String(line.character_name || '').trim();
@@ -135,6 +137,21 @@ Genera el diálogo completo en formato JSON.`;
       created.push(entry);
     }
 
+    // Tiempo estimado de habla por personaje (palabras / palabras por segundo)
+    const byCharacter: Record<string, number> = {};
+    let totalSeconds = 0;
+    for (const line of lines) {
+      const rawName = String(line.character_name || '').trim();
+      const name = rawName || String(characters[0]?.name || '');
+      const text = String(line.text || '').trim();
+      if (!text) continue;
+      const words = text.split(/\s+/).filter(Boolean).length;
+      const sec = Math.round(words / WORDS_PER_SECOND);
+      byCharacter[name] = (byCharacter[name] ?? 0) + sec;
+      totalSeconds += sec;
+    }
+    const estimated_times = { total_seconds: totalSeconds, by_character: byCharacter };
+
     const usage = data.usage;
     const promptTokens = usage?.prompt_tokens ?? 0;
     const completionTokens = usage?.completion_tokens ?? 0;
@@ -149,7 +166,7 @@ Genera el diálogo completo en formato JSON.`;
       details: JSON.stringify({ prompt_tokens: promptTokens, completion_tokens: completionTokens, lines: created.length }),
     });
 
-    return NextResponse.json({ entries: created.length, created });
+    return NextResponse.json({ entries: created.length, created, estimated_times });
   } catch (err) {
     console.error('Error generating dialogue:', err);
     return NextResponse.json({ error: 'Error al generar diálogo' }, { status: 500 });

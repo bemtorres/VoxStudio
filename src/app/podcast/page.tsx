@@ -39,20 +39,18 @@ export default function PodcastPage() {
 
   return (
     <AppLayout>
-      <div className="flex min-h-[calc(100vh-8rem)]">
-        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-          <div className="rounded-[2rem] bg-white/90 border-2 border-[#29B6B6]/20 shadow-xl overflow-hidden min-h-[480px] flex-1 min-w-0 m-4 md:m-6">
+      <div className="flex flex-1 flex-col min-h-0 overflow-hidden m-4 md:m-6">
+        <div className="rounded-[2rem] bg-white/90 border-2 border-[#29B6B6]/20 shadow-xl overflow-hidden flex-1 min-h-0 flex flex-col">
             <PodcastPanel
               characters={characters}
               currentPlaying={currentPlaying}
               onPlay={setCurrentPlaying}
               onViewModeChange={setViewMode}
             />
-          </div>
         </div>
       </div>
 
-      {viewMode === 'escaleta' && (
+      {true && (
         <AudioPlayerBar
           current={currentPlaying}
           onClose={() => setCurrentPlaying(null)}

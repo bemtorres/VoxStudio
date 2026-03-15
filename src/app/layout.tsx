@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   title: "VoxStudio - Personajes con voces IA",
   description: "Plataforma para crear personajes con voces generadas por IA. Diseña identidades, personalidad y convierte texto en audio realista.",
   icons: {
-    icon: "/VoxStudioLogo.png",
-    apple: "/VoxStudioLogo.png",
+    icon: "/favicon.svg",
+    apple: "/favicon.svg",
   },
 };
 

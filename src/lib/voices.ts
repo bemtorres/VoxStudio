@@ -1,5 +1,8 @@
 import { Voice } from '@/types';
 
+/** Mensaje template en español para las muestras de cada voz (corto, se guarda como audio). */
+export const VOICE_SAMPLE_TEXT = 'Hola, esta es una muestra de mi voz. Ideal para personajes y podcasts.';
+
 // Voces de gpt-4o-mini-tts (soporta instructions para personalización)
 // https://platform.openai.com/docs/models/gpt-4o-mini-tts
 export const openrouterVoices: Voice[] = [

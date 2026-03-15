@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { getCharacterById, getPodcastEntryById, updatePodcastEntry, logApiUsage } from '@/lib/db';
+import { parseGestureTags } from '@/lib/gestureMapper';
 import { buildVoiceInstructions, addLanguageToInstructions } from '@/lib/voiceInstructions';
 import { getVoiceName } from '@/lib/voices';
 
@@ -29,14 +30,19 @@ export async function POST(
     const character = getCharacterById(entry.character_id as number) as Record<string, unknown> | undefined;
     const voiceId = (entry.voice_id as string) || (character?.voice_id as string) || 'alloy';
     const voice = VALID_VOICES.includes(voiceId) ? voiceId : 'alloy';
-    const text = String(entry.text || '').trim();
-    if (!text) {
+    const rawText = String(entry.text || '').trim();
+    if (!rawText) {
       return NextResponse.json({ error: 'Texto vacío' }, { status: 400 });
     }
+
+    // Quitar etiquetas [gestos] del texto y convertirlas en instrucciones (no se leen en voz)
+    const { cleanText, gestureInstructions } = parseGestureTags(rawText);
+    const text = cleanText || rawText;
 
     let instructions = character ? buildVoiceInstructions(character) : '';
     instructions = addLanguageToInstructions(instructions, (entry.language as string) || 'es');
     if (entry.qualities) instructions = `${instructions}\n${entry.qualities}`.trim();
+    if (gestureInstructions) instructions = `${instructions}\n${gestureInstructions}`.trim();
 
     const body: Record<string, unknown> = {
       model: 'gpt-4o-mini-tts',
@@ -74,6 +80,7 @@ export async function POST(
       audio_file_path: filePath,
       voice_id: voice,
       voice_name: getVoiceName(voice),
+      synthesized_text: rawText,
     });
 
     return NextResponse.json({

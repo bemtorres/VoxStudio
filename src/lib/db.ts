@@ -102,11 +102,24 @@ db.exec(`
     voice_name TEXT DEFAULT '',
     language TEXT DEFAULT 'es',
     qualities TEXT DEFAULT '',
+    synthesized_text TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (episode_id) REFERENCES podcast_episodes(id) ON DELETE CASCADE,
     FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE CASCADE
   )
 `);
+
+try {
+  const peInfo = db.prepare('PRAGMA table_info(podcast_entries)').all() as { name: string }[];
+  if (!peInfo.some((c) => c.name === 'synthesized_text')) {
+    db.exec('ALTER TABLE podcast_entries ADD COLUMN synthesized_text TEXT');
+  }
+  if (!peInfo.some((c) => c.name === 'start_time_sec')) {
+    db.exec('ALTER TABLE podcast_entries ADD COLUMN start_time_sec REAL');
+  }
+} catch {
+  // ignorar si ya existe
+}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS api_usage (
@@ -485,6 +498,8 @@ export function updatePodcastEntry(id: number, data: Partial<{
   voice_name: string;
   language: string;
   qualities: string;
+  synthesized_text: string | null;
+  start_time_sec: number | null;
 }>) {
   const keys = Object.keys(data).filter(k => data[k as keyof typeof data] !== undefined) as (keyof typeof data)[];
   if (keys.length > 0) {

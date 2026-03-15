@@ -11,6 +11,7 @@ type Entry = {
   text: string;
   position: number;
   audio_file_path?: string;
+  start_time_sec?: number | null;
 };
 
 const PX_PER_SEC_MIN = 24;
@@ -64,12 +65,16 @@ interface PodcastTimelineEditorProps {
   entries: Entry[];
   cast: { id: number; name: string; avatar_path?: string }[];
   onPlayEntry?: (entry: Entry) => void;
+  onSaveTimeline?: (startTimes: Record<number, number>) => void;
+  savingTimeline?: boolean;
 }
 
 export default function PodcastTimelineEditor({
   entries,
   cast,
   onPlayEntry,
+  onSaveTimeline,
+  savingTimeline = false,
 }: PodcastTimelineEditorProps) {
   const entryDurations = useEntryDurations(entries);
   const [pxPerSec, setPxPerSec] = useState(PX_PER_SEC_DEFAULT);
@@ -82,6 +87,7 @@ export default function PodcastTimelineEditor({
   const [backgroundVolume, setBackgroundVolume] = useState(0.3);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [draggingId, setDraggingId] = useState<number | null>(null);
   const dragStartRef = useRef({ x: 0, startTime: 0 });
   const timelineRef = useRef<HTMLDivElement>(null);
@@ -98,7 +104,7 @@ export default function PodcastTimelineEditor({
     }
   }, []);
 
-  // Inicializar startTimes en secuencia solo la primera vez (o cuando cambian los entries y no se ha arrastrado)
+  // Inicializar startTimes: desde BD (start_time_sec) si todos tienen valor, si no en secuencia
   const initializedLayoutRef = useRef(false);
   useEffect(() => {
     if (entries.length === 0) {
@@ -108,19 +114,33 @@ export default function PodcastTimelineEditor({
       return;
     }
     if (userHasDraggedRef.current) {
-      // Solo actualizar totalDuration; no tocar startTimes
       setTotalDuration((prev) => prev);
       return;
     }
     if (!initializedLayoutRef.current) {
-      let t = 0;
+      const sorted = [...entries].sort((a, b) => a.position - b.position);
       const starts: Record<number, number> = {};
-      entries.forEach((e) => {
-        starts[e.id] = t;
-        t += entryDurations[e.id] ?? 2;
-      });
+      let maxEnd = 0;
+      const hasAnySaved = sorted.some((e) => typeof (e as Entry).start_time_sec === 'number');
+      if (hasAnySaved) {
+        sorted.forEach((e) => {
+          const s = (e as Entry).start_time_sec;
+          if (typeof s === 'number') {
+            starts[e.id] = s;
+            maxEnd = Math.max(maxEnd, s + (entryDurations[e.id] ?? 2));
+          } else {
+            starts[e.id] = maxEnd;
+            maxEnd += entryDurations[e.id] ?? 2;
+          }
+        });
+      } else {
+        sorted.forEach((e) => {
+          starts[e.id] = maxEnd;
+          maxEnd += entryDurations[e.id] ?? 2;
+        });
+      }
       setStartTimes(starts);
-      setTotalDuration(t);
+      setTotalDuration(Math.max(maxEnd, 1));
       initializedLayoutRef.current = true;
     }
   }, [entries, entryDurations]);
@@ -218,12 +238,13 @@ export default function PodcastTimelineEditor({
         const buf = await ctx.decodeAudioData(await res.arrayBuffer());
         const src = ctx.createBufferSource();
         src.buffer = buf;
+        src.playbackRate.value = playbackSpeed;
         const g = ctx.createGain();
         g.gain.value = backgroundVolume;
         src.connect(g);
         g.connect(gainDest);
         src.start(now);
-        src.stop(now + buf.duration);
+        src.stop(now + buf.duration / playbackSpeed);
         stopNodes.push({ stop: () => src.stop() });
       } catch {
         // ignore
@@ -237,6 +258,7 @@ export default function PodcastTimelineEditor({
           audio.load();
         });
         audio.currentTime = seekTime;
+        audio.playbackRate = playbackSpeed;
         const src = ctx.createMediaElementSource(audio);
         const g = ctx.createGain();
         g.gain.value = backgroundVolume;
@@ -262,13 +284,14 @@ export default function PodcastTimelineEditor({
         .then((buffer) => {
           const src = ctx.createBufferSource();
           src.buffer = buffer;
+          src.playbackRate.value = playbackSpeed;
           const g = ctx.createGain();
           g.gain.value = vol;
           src.connect(g);
           g.connect(gainDest);
-          const when = now + (start - seekTime);
+          const when = now + (start - seekTime) / playbackSpeed;
           src.start(when);
-          src.stop(when + buffer.duration);
+          src.stop(when + buffer.duration / playbackSpeed);
           stopNodes.push({ stop: () => src.stop() });
         })
         .catch(() => {});
@@ -286,7 +309,7 @@ export default function PodcastTimelineEditor({
     const start = performance.now();
     const interval = setInterval(() => {
       const elapsed = (performance.now() - start) / 1000;
-      const t = seekTime + elapsed;
+      const t = seekTime + elapsed * playbackSpeed;
       setCurrentTime(Math.min(t, total));
       if (t >= total) {
         clearInterval(interval);
@@ -300,6 +323,7 @@ export default function PodcastTimelineEditor({
     entries,
     backgroundUrl,
     backgroundVolume,
+    playbackSpeed,
     startTimes,
     entryDurations,
     volumes,
@@ -351,6 +375,25 @@ export default function PodcastTimelineEditor({
     [isPlaying, stop, play]
   );
 
+  const handleSyncToAudioTime = useCallback(() => {
+    if (entries.length === 0) return;
+    const sorted = [...entries].sort((a, b) => a.position - b.position);
+    let t = 0;
+    const newStarts: Record<number, number> = {};
+    sorted.forEach((e) => {
+      newStarts[e.id] = t;
+      t += entryDurations[e.id] ?? 2;
+    });
+    setStartTimes(newStarts);
+    setTotalDuration(Math.max(t, backgroundDuration, 1));
+    userHasDraggedRef.current = false;
+    onSaveTimeline?.(newStarts);
+  }, [entries, entryDurations, backgroundDuration, onSaveTimeline]);
+
+  const handleSaveTimeline = useCallback(() => {
+    onSaveTimeline?.(startTimes);
+  }, [onSaveTimeline, startTimes]);
+
   return (
     <div
       className="flex flex-col h-full min-h-0 bg-[#0f172a] rounded-xl overflow-hidden border border-slate-700/50 shadow-2xl outline-none"
@@ -382,6 +425,54 @@ export default function PodcastTimelineEditor({
             <span className="tabular-nums">{formatTime(totalDuration)}</span>
           </div>
           <span className="text-[10px] text-slate-500 hidden sm:inline">Clic = posición · Espacio = play/pausa</span>
+          <button
+            type="button"
+            onClick={handleSyncToAudioTime}
+            disabled={entries.length === 0 || savingTimeline}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-600/80 text-slate-200 hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium"
+            title="Reordenar pistas en secuencia según el orden y duración del audio, y guardar tiempos en la base de datos"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Sincronizar
+          </button>
+          <button
+            type="button"
+            onClick={handleSaveTimeline}
+            disabled={entries.length === 0 || savingTimeline}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600/90 text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium"
+            title="Guardar la edición actual de la línea de tiempo (posiciones de los clips) en la base de datos"
+          >
+            {savingTimeline ? (
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+            )}
+            {savingTimeline ? 'Guardando…' : 'Guardar'}
+          </button>
+          <div className="flex items-center gap-1.5 pl-2 border-l border-slate-600">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wide">Velocidad</span>
+            <select
+              value={playbackSpeed}
+              onChange={(e) => setPlaybackSpeed(Number(e.target.value))}
+              className="bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              title="Velocidad de reproducción de la conversación"
+            >
+              <option value={0.5}>0.5×</option>
+              <option value={0.75}>0.75×</option>
+              <option value={1}>1×</option>
+              <option value={1.25}>1.25×</option>
+              <option value={1.5}>1.5×</option>
+              <option value={1.75}>1.75×</option>
+              <option value={2}>2×</option>
+            </select>
+          </div>
           <div className="flex items-center gap-1.5 pl-2 border-l border-slate-600">
             <button
               type="button"

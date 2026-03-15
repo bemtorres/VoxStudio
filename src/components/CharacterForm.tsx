@@ -2,7 +2,6 @@
 
 import { Character } from '@/types';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { PREDEFINED_VIBES } from '@/lib/vibes';
 
 interface CharacterFormProps {
   character: Character | null;
@@ -19,10 +18,7 @@ export default function CharacterForm({ character, onUpdate }: CharacterFormProp
     background: '',
     description: '',
     tags: '',
-    voice_instructions: '',
   });
-  const [selectedVibeId, setSelectedVibeId] = useState<string | null>(null);
-  const [generatingInstructions, setGeneratingInstructions] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => {
@@ -35,11 +31,7 @@ export default function CharacterForm({ character, onUpdate }: CharacterFormProp
         background: character.background || '',
         description: character.description || '',
         tags: character.tags || '',
-        voice_instructions: character.voice_instructions || '',
       });
-      const matchingVibe = PREDEFINED_VIBES.find(v => v.instructions === (character.voice_instructions || ''));
-      const hasCustomGenerated = (character.voice_instructions || '').trim() && !matchingVibe;
-      setSelectedVibeId(matchingVibe?.id ?? (hasCustomGenerated ? 'generated' : null));
     }
   }, [character?.id]);
 
@@ -48,59 +40,7 @@ export default function CharacterForm({ character, onUpdate }: CharacterFormProp
     if (character) {
       onUpdate(character.id, { [field]: value });
     }
-    if (field === 'voice_instructions') {
-      const matchingVibe = PREDEFINED_VIBES.find(v => v.instructions === value);
-      setSelectedVibeId(matchingVibe?.id ?? (value.trim() ? 'generated' : null));
-    }
   }, [character, onUpdate]);
-
-  const handleSelectVibe = useCallback((vibeId: string) => {
-    if (!character) return;
-    if (vibeId === 'none') {
-      setSelectedVibeId(null);
-      setFormData(prev => ({ ...prev, voice_instructions: '' }));
-      onUpdate(character.id, { voice_instructions: '' });
-      return;
-    }
-    if (vibeId === 'generated') {
-      setSelectedVibeId('generated');
-      return;
-    }
-    const vibe = PREDEFINED_VIBES.find(v => v.id === vibeId);
-    if (vibe) {
-      setSelectedVibeId(vibeId);
-      setFormData(prev => ({ ...prev, voice_instructions: vibe.instructions }));
-      onUpdate(character.id, { voice_instructions: vibe.instructions });
-    }
-  }, [character, onUpdate]);
-
-  const handleGenerateInstructions = useCallback(async () => {
-    if (!character) return;
-    setGeneratingInstructions(true);
-    try {
-      const res = await fetch('/api/voices/generate-instructions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          personality: formData.personality,
-          background: formData.background,
-          description: formData.description,
-        }),
-      });
-      const data = await res.json();
-      if (data.instructions) {
-        setSelectedVibeId('generated');
-        setFormData(prev => ({ ...prev, voice_instructions: data.instructions }));
-        onUpdate(character.id, { voice_instructions: data.instructions });
-      } else if (data.error) {
-        alert(data.error);
-      }
-    } catch {
-      alert('Error al generar instrucciones');
-    }
-    setGeneratingInstructions(false);
-  }, [character, formData.name, formData.personality, formData.background, formData.description, onUpdate]);
 
   const handleAvatarClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -328,107 +268,6 @@ export default function CharacterForm({ character, onUpdate }: CharacterFormProp
         </div>
       </div>
 
-      <div className="border-t border-border/50 pt-8">
-        <h3 className="text-sm font-bold text-text-primary mb-2 flex items-center gap-2">
-          <span className="w-1 h-5 rounded-full bg-[#29B6B6]" />
-          Vibe de la voz
-        </h3>
-      <div className="space-y-4 mt-4">
-        <p className="text-[11px] text-text-secondary opacity-70">
-          Elige un estilo predefinido o genera uno personalizado desde las características del personaje.
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-          <button
-            type="button"
-            onClick={() => handleSelectVibe('none')}
-            className={`p-4 rounded-2xl border-2 text-left transition-all text-sm font-semibold flex flex-col relative ${
-              selectedVibeId === null && !formData.voice_instructions
-                ? 'border-primary bg-primary/20 text-primary ring-2 ring-primary/30 shadow-lg shadow-primary/10'
-                : 'border-border bg-surface-elevated hover:border-primary/50 text-text-primary'
-            }`}
-          >
-            {selectedVibeId === null && !formData.voice_instructions && (
-              <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
-              </span>
-            )}
-            <span className="flex-1">Ninguno</span>
-          </button>
-          {PREDEFINED_VIBES.map((vibe) => (
-            <button
-              key={vibe.id}
-              type="button"
-              onClick={() => handleSelectVibe(vibe.id)}
-              className={`p-4 rounded-2xl border-2 text-left transition-all text-sm font-semibold flex flex-col relative ${
-                selectedVibeId === vibe.id
-                  ? 'border-primary bg-primary/20 text-primary ring-2 ring-primary/30 shadow-lg shadow-primary/10'
-                  : 'border-border bg-surface-elevated hover:border-primary/50 text-text-primary'
-              }`}
-            >
-              {selectedVibeId === vibe.id && (
-                <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                </span>
-              )}
-              <span className="flex-1">{vibe.name}</span>
-            </button>
-          ))}
-          {formData.voice_instructions && !PREDEFINED_VIBES.some(v => v.instructions === formData.voice_instructions) && (
-            <button
-              type="button"
-              onClick={() => handleSelectVibe('generated')}
-              className={`p-4 rounded-2xl border-2 text-left transition-all text-sm font-semibold flex flex-col relative ${
-                selectedVibeId === 'generated'
-                  ? 'border-emerald-500 bg-emerald-500/20 text-emerald-600 ring-2 ring-emerald-500/30 shadow-lg shadow-emerald-500/10'
-                  : 'border-emerald-500/50 bg-surface-elevated hover:border-emerald-500/70 text-text-primary'
-              }`}
-            >
-              {selectedVibeId === 'generated' && (
-                <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
-                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                </span>
-              )}
-              <span className="flex-1">Generado</span>
-              <span className="text-[10px] opacity-70">IA · Este personaje</span>
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={handleGenerateInstructions}
-            disabled={generatingInstructions || (!formData.personality && !formData.background && !formData.description)}
-            className="p-4 rounded-2xl border-2 border-dashed border-border bg-surface/50 hover:bg-surface hover:border-primary/50 transition-all flex flex-col items-center justify-center gap-2 text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Generar con IA desde personalidad, trasfondo y descripción"
-          >
-            {generatingInstructions ? (
-              <span className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-            ) : (
-              <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            )}
-            <span className="text-xs font-medium">Generar con IA</span>
-          </button>
-        </div>
-        {formData.voice_instructions && (
-          <div className="mt-2">
-            <label className="block text-[10px] font-bold text-text-secondary mb-1 opacity-80">Instrucciones actuales</label>
-            <textarea
-              value={formData.voice_instructions}
-              onChange={(e) => handleChange('voice_instructions', e.target.value)}
-              placeholder="Voice Affect: ... Tone: ..."
-              rows={5}
-              className={`${inputClass} resize-none text-xs`}
-            />
-          </div>
-        )}
-      </div>
-      </div>
     </div>
   );
 }

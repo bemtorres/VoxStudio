@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import VoiceSelector from './VoiceSelector';
 import { formatCostUsd } from '@/lib/format';
 import { buildVoiceInstructions, addLanguageToInstructions } from '@/lib/voiceInstructions';
@@ -18,6 +18,7 @@ interface CharacterForInstructions {
   background?: string;
   description?: string;
   voice_instructions?: string;
+  voice_id?: string;
 }
 
 interface CreateAudioModalProps {
@@ -46,6 +47,14 @@ export default function CreateAudioModal({ isOpen, onClose, characterName, chara
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'voice' | 'generate'>('voice');
   const [filter, setFilter] = useState<{ is_free: string }>({ is_free: '' });
+
+  useEffect(() => {
+    if (isOpen && character?.voice_id) {
+      setVoiceId(character.voice_id);
+    } else if (isOpen && !character?.voice_id) {
+      setVoiceId('alloy');
+    }
+  }, [isOpen, character?.voice_id]);
 
   const handleGenerate = async () => {
     if (!text.trim() || !voiceId) return;

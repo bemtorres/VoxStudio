@@ -71,16 +71,9 @@ export default function AppLayout({ children, headerActions }: AppLayoutProps) {
         </nav>
       </header>
 
-      <div className="flex-1 pt-16">
+      <div className="flex-1 pt-16 w-full min-h-0 flex flex-col">
         {children}
       </div>
-
-      <footer className="py-3 text-center text-xs text-slate-500 border-t border-[#29B6B6]/10 bg-white/50">
-        Desarrollado para creadores de contenido, chatbots y VTubers. Creado por{' '}
-        <a href="https://github.com/bemtorres" target="_blank" rel="noopener noreferrer" className="text-[#29B6B6] hover:underline font-semibold">
-          bemtorres
-        </a>
-      </footer>
     </div>
   );
 }

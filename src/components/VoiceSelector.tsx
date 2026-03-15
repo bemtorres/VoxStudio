@@ -1,7 +1,7 @@
 'use client';
 
 import { Voice } from '@/types';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface VoiceSelectorProps {
   selectedVoiceId: string;
@@ -14,6 +14,9 @@ interface VoiceSelectorProps {
 export default function VoiceSelector({ selectedVoiceId, onSelectVoice, compact, externalFilter }: VoiceSelectorProps) {
   const [voices, setVoices] = useState<Voice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [playingId, setPlayingId] = useState<string | null>(null);
+  const [loadingSampleId, setLoadingSampleId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [filter, setFilter] = useState({
     is_free: externalFilter?.is_free ?? '',
     gender: '',
@@ -47,6 +50,38 @@ export default function VoiceSelector({ selectedVoiceId, onSelectVoice, compact,
     }
     return () => { isMounted = false; };
   }, [loadVoices]);
+
+  const playSample = useCallback(async (voiceId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (playingId === voiceId) {
+      audioRef.current?.pause();
+      setPlayingId(null);
+      return;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    setLoadingSampleId(voiceId);
+    try {
+      const audio = new Audio(`/api/voices/sample/${voiceId}`);
+      audioRef.current = audio;
+      audio.onended = () => {
+        setPlayingId(null);
+        setLoadingSampleId(null);
+      };
+      audio.onerror = () => {
+        setPlayingId(null);
+        setLoadingSampleId(null);
+      };
+      await audio.play();
+      setPlayingId(voiceId);
+    } catch {
+      setPlayingId(null);
+      setLoadingSampleId(null);
+    } finally {
+      setLoadingSampleId(null);
+    }
+  }, [playingId]);
 
   return (
     <div className={compact ? 'space-y-4' : 'space-y-8'}>
@@ -100,10 +135,18 @@ export default function VoiceSelector({ selectedVoiceId, onSelectVoice, compact,
       ) : (
         <div className={`grid gap-2 ${compact ? 'grid-cols-4 sm:grid-cols-5' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'}`}>
           {voices.map((voice) => (
-            <button
+            <div
               key={voice.id}
+              role="button"
+              tabIndex={0}
               onClick={() => onSelectVoice(voice.id)}
-              className={`group relative text-left rounded-xl border transition-all duration-300 ${
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectVoice(voice.id);
+                }
+              }}
+              className={`group relative text-left rounded-xl border transition-all duration-300 cursor-pointer ${
                 compact ? 'p-2.5' : 'p-5 rounded-2xl'
               } ${
                 selectedVoiceId === voice.id
@@ -112,11 +155,30 @@ export default function VoiceSelector({ selectedVoiceId, onSelectVoice, compact,
               }`}
             >
               <div className={`flex items-center gap-2 ${compact ? '' : 'mb-3'}`}>
-                <div className={`shrink-0 rounded-lg ${compact ? 'p-1.5' : 'p-2'} ${selectedVoiceId === voice.id ? 'bg-white/20' : 'bg-primary/10 text-primary'}`}>
-                  <svg className={compact ? 'w-3.5 h-3.5' : 'w-5 h-5'} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m8 0h-3m4-8a3 3 0 01-3 3H9a3 3 0 01-3-3V7a3 3 0 013-3h6a3 3 0 013 3v4z" />
-                  </svg>
-                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    playSample(voice.id, e);
+                  }}
+                  title="Reproducir muestra de voz"
+                  className={`shrink-0 rounded-lg ${compact ? 'p-1.5' : 'p-2'} ${selectedVoiceId === voice.id ? 'bg-white/20 hover:bg-white/30' : 'bg-primary/10 text-primary hover:bg-primary/20'} focus:outline-none focus:ring-2 focus:ring-primary/50`}
+                >
+                  {loadingSampleId === voice.id ? (
+                    <svg className={`${compact ? 'w-3.5 h-3.5' : 'w-5 h-5'} animate-spin`} fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : playingId === voice.id ? (
+                    <svg className={compact ? 'w-3.5 h-3.5' : 'w-5 h-5'} fill="currentColor" viewBox="0 0 24 24" title="Pausar">
+                      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                    </svg>
+                  ) : (
+                    <svg className={compact ? 'w-3.5 h-3.5' : 'w-5 h-5'} fill="currentColor" viewBox="0 0 24 24" title="Escuchar muestra">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  )}
+                </button>
                 <div className="min-w-0 flex-1">
                   <div className={`font-bold truncate ${compact ? 'text-xs' : 'text-sm'} ${selectedVoiceId === voice.id ? 'text-white' : 'text-text-primary'}`}>
                     {voice.name}
@@ -132,7 +194,7 @@ export default function VoiceSelector({ selectedVoiceId, onSelectVoice, compact,
                   <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
                 </div>
               )}
-            </button>
+            </div>
           ))}
         </div>
       )}

@@ -1,9 +1,10 @@
 import Link from 'next/link';
+import SoundWavesHero from '@/components/SoundWavesHero';
 
 export default function InicioPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-[#e8f4f4] to-[#f0f9ff] text-[#373D48]">
-      <header className="h-16 px-4 md:px-6 flex items-center justify-between border-b border-[#29B6B6]/20 bg-white/80">
+      <header className="relative z-10 h-16 px-4 md:px-6 flex items-center justify-between border-b border-[#29B6B6]/20 bg-white/80">
         <Link href="/" className="flex items-center gap-3">
           <img src="/VoxStudioLogo.png" alt="VoxStudio" className="w-9 h-9 object-contain" />
           <span className="text-lg font-extrabold"><span className="text-[#373D48]">Vox</span><span className="text-[#29B6B6]">Studio</span></span>
@@ -21,19 +22,20 @@ export default function InicioPage() {
         </nav>
       </header>
 
-      <main className="max-w-4xl mx-auto px-6 py-16 md:py-24">
-        <div className="text-center mb-16">
-          <img src="/VoxStudio.png" alt="VoxStudio" className="w-64 mx-auto mb-8" />
-          <h1 className="text-4xl md:text-5xl font-extrabold text-[#373D48] mb-4">
+      <main className="relative max-w-4xl mx-auto px-6 py-16 md:py-24">
+        <SoundWavesHero />
+        <div className="relative z-10 text-center mb-16">
+          <img src="/VoxStudio.png" alt="VoxStudio" className="w-64 mx-auto mb-8 animate-hero-fade-up" />
+          <h1 className="text-4xl md:text-5xl font-extrabold text-[#373D48] mb-4 animate-hero-fade-up hero-delay-1">
             Crea personajes con voces de IA
           </h1>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+          <p className="text-xl text-slate-600 max-w-2xl mx-auto animate-hero-fade-up hero-delay-2">
             VoxStudio es una plataforma para creadores de contenido, chatbots y VTubers. 
             Diseña identidades únicas, define personalidad y convierte texto en audio realista.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 mb-16">
+        <div className="relative z-10 grid md:grid-cols-3 gap-8 mb-16">
           <Link href="/personajes" className="p-6 rounded-2xl bg-white/90 border border-[#29B6B6]/20 shadow-lg hover:border-[#29B6B6]/40 hover:shadow-xl transition-all">
             <div className="w-12 h-12 rounded-xl bg-[#29B6B6]/20 flex items-center justify-center mb-4">
               <svg className="w-6 h-6 text-[#29B6B6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,7 +71,7 @@ export default function InicioPage() {
           </div>
         </div>
 
-        <div className="text-center">
+        <div className="relative z-10 text-center">
           <Link
             href="/login"
             className="inline-block px-8 py-4 rounded-2xl text-lg font-bold bg-[#29B6B6] text-white hover:bg-[#34d1d1] transition-colors shadow-lg shadow-[#29B6B6]/30"
@@ -82,7 +84,7 @@ export default function InicioPage() {
         </div>
       </main>
 
-      <footer className="py-6 text-center text-xs text-slate-500 border-t border-[#29B6B6]/10 bg-white/50 mt-16">
+      <footer className="relative z-10 py-6 text-center text-xs text-slate-500 border-t border-[#29B6B6]/10 bg-white/50 mt-16">
         Desarrollado para creadores de contenido, chatbots y VTubers. Creado por{' '}
         <a href="https://github.com/bemtorres" target="_blank" rel="noopener noreferrer" className="text-[#29B6B6] hover:underline font-semibold">
           bemtorres
